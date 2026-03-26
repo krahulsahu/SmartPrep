@@ -76,7 +76,7 @@ export default function AdminQuestionsPage() {
       body: JSON.stringify({
         topic: aiTopic,
         difficulty: 'medium',
-        count: 3,
+        count: 30,
       }),
     });
     await apiRequest('/api/questions', {

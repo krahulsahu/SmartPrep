@@ -14,6 +14,9 @@ export default function AdminTestsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -38,27 +41,58 @@ export default function AdminTestsPage() {
   }, []);
 
   const createTest = async () => {
-    await apiRequest('/api/tests', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...form,
-        timeLimit: Number(form.timeLimit),
-        passingScore: Number(form.passingScore),
-        totalPoints: Number(form.totalPoints),
-        questionIds: selectedQuestionIds,
-      }),
-    });
-    setForm({
-      title: '',
-      description: '',
-      category: '',
-      timeLimit: 60,
-      passingScore: 60,
-      totalPoints: 100,
-      status: 'draft',
-    });
-    setSelectedQuestionIds([]);
-    await load();
+    setError('');
+    setSuccess('');
+
+    if (!form.title.trim()) {
+      setError('Title is required.');
+      return;
+    }
+
+    if (!form.description.trim()) {
+      setError('Description is required.');
+      return;
+    }
+
+    if (!form.category.trim()) {
+      setError('Category is required.');
+      return;
+    }
+
+    if (selectedQuestionIds.length === 0) {
+      setError('Select at least one question before creating a test.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await apiRequest('/api/tests', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          timeLimit: Number(form.timeLimit),
+          passingScore: Number(form.passingScore),
+          totalPoints: Number(form.totalPoints),
+          questionIds: selectedQuestionIds,
+        }),
+      });
+      setForm({
+        title: '',
+        description: '',
+        category: '',
+        timeLimit: 60,
+        passingScore: 60,
+        totalPoints: 100,
+        status: 'draft',
+      });
+      setSelectedQuestionIds([]);
+      setSuccess('Test created successfully.');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create test.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -67,6 +101,18 @@ export default function AdminTestsPage() {
         <h1 className="text-3xl font-bold text-foreground mb-2">Test Management</h1>
         <p className="text-muted-foreground">Create tests from existing question records and publish them through the API.</p>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {success}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Card className="border-border">
@@ -88,6 +134,11 @@ export default function AdminTestsPage() {
               <option value="archived">Archived</option>
             </select>
             <div className="rounded-lg border border-border p-3 max-h-72 overflow-y-auto space-y-2">
+              {questions.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No questions available. Create questions first, then come back to build a test.
+                </p>
+              )}
               {questions.map((question) => {
                 const checked = selectedQuestionIds.includes(question.id);
                 return (
@@ -106,7 +157,13 @@ export default function AdminTestsPage() {
                 );
               })}
             </div>
-            <Button onClick={() => void createTest()} className="w-full">Create Test</Button>
+            <Button
+              onClick={() => void createTest()}
+              className="w-full"
+              disabled={isSubmitting || questions.length === 0}
+            >
+              {isSubmitting ? 'Creating Test...' : 'Create Test'}
+            </Button>
           </CardContent>
         </Card>
 
