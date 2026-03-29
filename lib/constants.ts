@@ -14,13 +14,12 @@ export const DIFFICULTY_COLORS: Record<DifficultyLevel, string> = {
   hard: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 };
 
-export const QUESTION_TYPES: QuestionType[] = ['multiple-choice', 'short-answer', 'essay', 'true-false'];
+export const QUESTION_TYPES: QuestionType[] = ['mcq', 'numerical', 'multi-correct'];
 
-export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
-  'multiple-choice': 'Multiple Choice',
-  'short-answer': 'Short Answer',
-  essay: 'Essay',
-  'true-false': 'True/False',
+export const QUESTION_TYPE_LABELS: Partial<Record<QuestionType, string>> = {
+  mcq: 'MCQ',
+  numerical: 'Numerical',
+  'multi-correct': 'Multi Correct',
 };
 
 export const USER_ROLES: UserRole[] = ['student', 'admin'];
@@ -36,6 +35,7 @@ export const ROUTES = {
   LOGIN: '/auth/login',
   REGISTER: '/auth/register',
   FORGOT_PASSWORD: '/auth/forgot-password',
+  RESET_PASSWORD: '/auth/reset-password',
 
   // Student routes
   STUDENT_DASHBOARD: '/dashboard/student',
@@ -62,18 +62,7 @@ export const NOTIFICATIONS = {
   ERROR_VALIDATION: 'Please check your input and try again.',
 };
 
-export const DEFAULT_CATEGORIES = [
-  'Mathematics',
-  'Science',
-  'English',
-  'History',
-  'Computer Science',
-  'Geography',
-  'Physics',
-  'Chemistry',
-  'Biology',
-  'Economics',
-];
+export const DEFAULT_CATEGORIES = [];
 
 export const PAGINATION = {
   DEFAULT_PAGE_SIZE: 10,

@@ -59,6 +59,10 @@ export async function POST(request: Request) {
       return Response.json({ success: false, error: 'Test not found' }, { status: 404 });
     }
 
+    if (auth.user.role !== 'admin' && test.status !== 'published') {
+      return Response.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
     const questions = await db
       .collection(COLLECTIONS.questions)
       .find({ _id: { $in: test.questionIds.map((id: string) => new ObjectId(id)) } })

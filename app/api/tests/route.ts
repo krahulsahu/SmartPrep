@@ -3,6 +3,8 @@ import { COLLECTIONS, getDb } from '@/lib/db';
 import { createTestSchema } from '@/lib/schemas';
 import { serializeId } from '@/lib/serializers';
 import { requireAdmin, requireUser } from '@/lib/server-auth';
+import { buildTestQuestions } from '@/lib/test-builder';
+import { isExamType, isValidSubjectForExamType } from '@/lib/exam-catalog';
 
 export async function GET(request: Request) {
   const auth = await requireUser();
@@ -13,6 +15,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const includeQuestions = searchParams.get('includeQuestions') === 'true';
   const status = searchParams.get('status');
+  const examType = searchParams.get('examType');
 
   const db = await getDb();
   const query: Record<string, unknown> = {};
@@ -21,6 +24,13 @@ export async function GET(request: Request) {
     query.status = status;
   } else if (auth.user.role !== 'admin') {
     query.status = 'published';
+  }
+
+  if (examType) {
+    if (!(await isExamType(db, examType))) {
+      return Response.json({ success: false, error: 'Invalid exam type' }, { status: 400 });
+    }
+    query.examType = examType;
   }
 
   const tests = await db.collection(COLLECTIONS.tests).find(query).sort({ createdAt: -1 }).toArray();
@@ -57,21 +67,25 @@ export async function POST(request: Request) {
   try {
     const body = createTestSchema.parse(await request.json());
     const db = await getDb();
-
-    const existingQuestions = await db
-      .collection(COLLECTIONS.questions)
-      .countDocuments({ _id: { $in: body.questionIds.map((id) => new ObjectId(id)) } });
-
-    if (existingQuestions !== body.questionIds.length) {
-      return Response.json(
-        { success: false, error: 'One or more question IDs are invalid' },
-        { status: 400 }
-      );
+    if (!(await isExamType(db, body.examType))) {
+      return Response.json({ success: false, error: 'Invalid exam type' }, { status: 400 });
     }
+
+    for (const section of body.sections) {
+      if (!(await isValidSubjectForExamType(db, body.examType, section.subject))) {
+        return Response.json({ success: false, error: `Invalid subject ${section.subject}` }, { status: 400 });
+      }
+    }
+
+    const generated = body.skipQuestionAssignment
+      ? { questionIds: [], questions: [] }
+      : await buildTestQuestions(db, body.examType, body.sections);
 
     const now = new Date();
     const testDoc = {
       ...body,
+      skipQuestionAssignment: undefined,
+      questionIds: generated.questionIds,
       createdBy: auth.user.id,
       createdAt: now,
       updatedAt: now,
@@ -81,7 +95,10 @@ export async function POST(request: Request) {
 
     return Response.json({
       success: true,
-      data: serializeId({ _id: insertResult.insertedId, ...testDoc }),
+      data: {
+        ...serializeId({ _id: insertResult.insertedId, ...testDoc }),
+        questions: generated.questions.map(serializeId),
+      },
       message: 'Test created successfully',
     });
   } catch (error) {

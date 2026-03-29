@@ -10,41 +10,67 @@ export interface User {
   avatar?: string;
   createdAt: Date;
   lastLogin?: Date;
+  emailVerifiedAt?: Date | null;
+  failedLoginAttempts?: number;
+  lockUntil?: Date | null;
 }
 
 // Question Types
-export type QuestionType = 'multiple-choice' | 'short-answer' | 'essay' | 'true-false';
+export type ExamType = string;
+export type QuestionType =
+  | 'mcq'
+  | 'numerical'
+  | 'multi-correct'
+  | 'multiple-choice'
+  | 'short-answer'
+  | 'essay'
+  | 'true-false';
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
 
 export interface Question {
   id: string;
-  text: string;
+  examType: ExamType;
+  subject: string;
+  questionText: string;
+  text?: string;
   type: QuestionType;
   difficulty: DifficultyLevel;
-  category: string;
-  options?: string[]; // for multiple choice
+  category?: string;
+  options?: string[];
   correctAnswer: string | string[];
-  explanation: string;
+  explanation:
+    | {
+        concept: string;
+        solution: string;
+      }
+    | string;
   createdBy: string;
   createdAt: Date;
   updatedAt?: Date;
   tags?: string[];
-  timeEstimate?: number; // in seconds
+  timeEstimate?: number;
 }
 
 // Test Types
 export type TestStatus = 'draft' | 'published' | 'archived';
 
+export interface TestSection {
+  subject: string;
+  difficulty: DifficultyLevel;
+  numberOfQuestions: number;
+}
+
 export interface Test {
   id: string;
   title: string;
   description: string;
+  examType: ExamType;
+  sections: TestSection[];
   questionIds: string[];
-  questions?: Question[];
+  questions: Question[];
   timeLimit: number; // in minutes
   passingScore: number; // percentage
   totalPoints: number;
-  category: string;
   createdBy: string;
   status: TestStatus;
   createdAt: Date;
@@ -145,6 +171,7 @@ export interface AuthResponse {
   user?: User;
   message?: string;
   error?: string;
+  code?: string;
 }
 
 export interface LoginRequest {

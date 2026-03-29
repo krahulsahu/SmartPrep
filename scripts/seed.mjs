@@ -70,6 +70,13 @@ const run = async () => {
       role: 'student',
       createdAt: new Date(),
       lastLogin: new Date(),
+      emailVerifiedAt: new Date(),
+      emailVerificationTokenHash: null,
+      emailVerificationTokenExpiresAt: null,
+      passwordResetTokenHash: null,
+      passwordResetTokenExpiresAt: null,
+      failedLoginAttempts: 0,
+      lockUntil: null,
     });
     studentIds.push(insertResult.insertedId.toString());
   }

@@ -12,9 +12,10 @@ interface TestPlayerProps {
 }
 
 export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
+  const questions = test.questions ?? [];
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<TestAnswer[]>(
-    test.questions.map((q) => ({
+    questions.map((q) => ({
       questionId: q.id,
       answer: '',
       timeSpent: 0,
@@ -25,7 +26,7 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
   const [startTime] = useState(Date.now());
   const [showWarning, setShowWarning] = useState(false);
 
-  const currentQuestion = test.questions[currentQuestionIndex];
+  const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = answers[currentQuestionIndex];
 
   // Timer countdown
@@ -70,7 +71,7 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < test.questions.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
@@ -87,8 +88,14 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
     }
   };
 
-  const questionsWithAnswers = answers.filter((a) => a.answer.trim() !== '').length;
-  const progress = Math.round((questionsWithAnswers / test.questions.length) * 100);
+  const questionsWithAnswers = answers.filter((a) =>
+    Array.isArray(a.answer) ? a.answer.length > 0 : a.answer.trim() !== ''
+  ).length;
+  const progress = questions.length ? Math.round((questionsWithAnswers / questions.length) * 100) : 0;
+
+  if (!currentQuestion || !currentAnswer) {
+    return null;
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-100px)]">
@@ -101,7 +108,7 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
               <div>
                 <CardTitle className="text-base">{test.title}</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Question {currentQuestionIndex + 1} of {test.questions.length}
+                  Question {currentQuestionIndex + 1} of {questions.length}
                 </p>
               </div>
               <div className={`text-right ${timeRemaining < 60 ? 'text-red-600' : ''}`}>
@@ -126,10 +133,12 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
         <Card className="border-border flex-1 flex flex-col mb-4 overflow-hidden">
           <CardContent className="pt-6 flex-1 overflow-y-auto">
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">{currentQuestion.text}</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                {currentQuestion.questionText || currentQuestion.text}
+              </h3>
 
               {/* Answer Input */}
-              {currentQuestion.type === 'multiple-choice' && (
+              {currentQuestion.type === 'mcq' && (
                 <div className="space-y-3">
                   {currentQuestion.options?.map((option, idx) => (
                     <label
@@ -150,33 +159,12 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
                 </div>
               )}
 
-              {currentQuestion.type === 'true-false' && (
-                <div className="space-y-3">
-                  {['True', 'False'].map((option) => (
-                    <label
-                      key={option}
-                      className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-card transition-colors"
-                    >
-                      <input
-                        type="radio"
-                        name={currentQuestion.id}
-                        value={option}
-                        checked={currentAnswer.answer === option}
-                        onChange={(e) => handleAnswerChange(e.target.value)}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-foreground">{option}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              {(currentQuestion.type === 'short-answer' || currentQuestion.type === 'essay') && (
+              {(currentQuestion.type === 'numerical' || currentQuestion.type === 'multi-correct') && (
                 <textarea
-                  value={currentAnswer.answer}
+                  value={Array.isArray(currentAnswer.answer) ? currentAnswer.answer.join(', ') : currentAnswer.answer}
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   placeholder="Type your answer here..."
-                  rows={currentQuestion.type === 'essay' ? 6 : 3}
+                  rows={currentQuestion.type === 'multi-correct' ? 4 : 3}
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground"
                 />
               )}
@@ -205,7 +193,7 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
             {markedQuestions.has(currentQuestion.id) ? 'Marked' : 'Mark for Review'}
           </Button>
 
-          {currentQuestionIndex === test.questions.length - 1 ? (
+          {currentQuestionIndex === questions.length - 1 ? (
             <Button
               onClick={handleSubmit}
               className="gap-2 bg-green-600 hover:bg-green-700"
@@ -215,7 +203,7 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
           ) : (
             <Button
               onClick={handleNext}
-              disabled={currentQuestionIndex === test.questions.length - 1}
+              disabled={currentQuestionIndex === questions.length - 1}
               className="gap-2"
             >
               Next
@@ -236,7 +224,7 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Answered</span>
-                <span className="text-sm font-bold text-accent">{questionsWithAnswers}/{test.questions.length}</span>
+                <span className="text-sm font-bold text-accent">{questionsWithAnswers}/{questions.length}</span>
               </div>
               <div className="w-full h-2 bg-border rounded-full overflow-hidden">
                 <div
@@ -255,8 +243,10 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto">
             <div className="grid grid-cols-4 gap-2">
-              {test.questions.map((question, idx) => {
-                const isAnswered = answers[idx].answer.trim() !== '';
+              {questions.map((question, idx) => {
+                const isAnswered = Array.isArray(answers[idx].answer)
+                  ? answers[idx].answer.length > 0
+                  : answers[idx].answer.trim() !== '';
                 const isMarked = markedQuestions.has(question.id);
                 const isCurrent = idx === currentQuestionIndex;
 

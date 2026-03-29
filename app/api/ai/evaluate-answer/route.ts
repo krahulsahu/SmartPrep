@@ -2,6 +2,7 @@ import { ObjectId } from 'mongodb';
 import { evaluateAnswer } from '@/lib/ai-service';
 import { COLLECTIONS, getDb } from '@/lib/db';
 import { requireUser } from '@/lib/server-auth';
+import { Question } from '@/lib/types';
 
 export async function POST(request: Request) {
   const auth = await requireUser();
@@ -30,10 +31,10 @@ export async function POST(request: Request) {
     }
 
     const result = await evaluateAnswer(
-      {
+      ({
         ...question,
         id: question._id.toString(),
-      },
+      } as unknown) as Question,
       studentAnswer
     );
 

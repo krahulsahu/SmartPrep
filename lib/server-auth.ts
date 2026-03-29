@@ -9,6 +9,7 @@ export type AuthUser = {
   email: string;
   role: 'student' | 'admin';
   createdAt: Date;
+  emailVerifiedAt?: Date | null;
 };
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
@@ -32,6 +33,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     email: user.email,
     role: user.role,
     createdAt: user.createdAt,
+    emailVerifiedAt: user.emailVerifiedAt ?? null,
   };
 }
 

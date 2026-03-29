@@ -34,7 +34,8 @@ export async function GET(request: Request) {
     for (const attempt of attempts) {
       const test = testsById.get(attempt.testId);
       if (!test) continue;
-      const entry = categories.get(test.category) || {
+      const performanceKey = `${test.examType} - ${test.sections.map((section: { subject: string }) => section.subject).join(', ')}`;
+      const entry = categories.get(performanceKey) || {
         totalQuestions: 0,
         correctAnswers: 0,
         tests: 0,
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
       entry.correctAnswers += attempt.score || 0;
       entry.tests += 1;
       entry.scores.push(attempt.percentage || 0);
-      categories.set(test.category, entry);
+      categories.set(performanceKey, entry);
     }
 
     const categoryPerformance = [...categories.entries()].map(([categoryName, value]) => ({

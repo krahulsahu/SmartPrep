@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ROUTES } from '@/lib/constants';
+import { apiRequest } from '@/lib/client-api';
 import { Brain, ArrowLeft } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
@@ -26,8 +27,10 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      // Mock password reset request
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await apiRequest('/api/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
       setSubmitted(true);
     } catch (err) {
       setError('Failed to process request. Please try again.');

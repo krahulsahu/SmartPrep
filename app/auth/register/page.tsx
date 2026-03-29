@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,17 +10,18 @@ import { ROUTES } from '@/lib/constants';
 import { Brain } from 'lucide-react';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { register, isLoading } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (!name || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
@@ -33,14 +33,25 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    const passwordErrors = [
+      password.length < 8 ? 'at least 8 characters' : null,
+      !/[A-Z]/.test(password) ? 'one uppercase letter' : null,
+      !/[0-9]/.test(password) ? 'one number' : null,
+      !/[^A-Za-z0-9]/.test(password) ? 'one special character' : null,
+    ].filter(Boolean);
+
+    if (passwordErrors.length > 0) {
+      setError(`Password must include ${passwordErrors.join(', ')}`);
       return;
     }
 
     try {
-      await register(name, email, password);
-      router.push(ROUTES.STUDENT_DASHBOARD);
+      const result = await register(name, email, password);
+      setSuccess(result.message || 'Account created. Please verify your email before signing in.');
+      setName('');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     }
@@ -68,6 +79,12 @@ export default function RegisterPage() {
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                   {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg text-sm">
+                  {success}
                 </div>
               )}
 
@@ -108,7 +125,7 @@ export default function RegisterPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="At least 8 chars, 1 uppercase, 1 number, 1 symbol"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-card border-border"
@@ -153,7 +170,7 @@ export default function RegisterPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          By signing up, you agree to our Terms of Service and Privacy Policy
+          By signing up, you agree to our Terms of Service and Privacy Policy. Email verification is required before login.
         </p>
       </div>
     </div>

@@ -12,6 +12,8 @@ declare global {
         checkedAt: string;
       }
     | undefined;
+  // eslint-disable-next-line no-var
+  var __smartprepIndexesPromise: Promise<void> | undefined;
 }
 
 function normalizeMongoError(error: unknown) {
@@ -50,6 +52,18 @@ export async function getDb(): Promise<Db> {
   try {
     const client = await getClientPromise();
     const db = client.db(env.mongodbDbName());
+    if (!global.__smartprepIndexesPromise) {
+      global.__smartprepIndexesPromise = Promise.all([
+        db.collection(COLLECTIONS.users).createIndex({ email: 1 }, { unique: true }),
+        db.collection(COLLECTIONS.users).createIndex({ emailVerificationTokenHash: 1 }),
+        db.collection(COLLECTIONS.users).createIndex({ passwordResetTokenHash: 1 }),
+        db.collection(COLLECTIONS.questions).createIndex({ examType: 1, subject: 1, difficulty: 1 }),
+        db.collection(COLLECTIONS.questions).createIndex({ examType: 1, subject: 1 }),
+        db.collection(COLLECTIONS.tests).createIndex({ examType: 1, status: 1, createdAt: -1 }),
+        db.collection(COLLECTIONS.examCatalog).createIndex({ examType: 1 }, { unique: true }),
+      ]).then(() => undefined);
+    }
+    await global.__smartprepIndexesPromise;
     global.__smartprepDbStatus = {
       connected: true,
       message: `Connected to ${env.mongodbDbName()}`,
@@ -94,4 +108,5 @@ export const COLLECTIONS = {
   questions: 'questions',
   tests: 'tests',
   attempts: 'attempts',
+  examCatalog: 'examCatalog',
 } as const;

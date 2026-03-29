@@ -1,8 +1,9 @@
 import { COLLECTIONS, getDb } from '@/lib/db';
+import { sendVerificationEmail } from '@/lib/auth-email';
+import { createVerificationTokenRecord } from '@/lib/auth-tokens';
 import { hashPassword } from '@/lib/password';
 import { registerSchema } from '@/lib/schemas';
 import { serializeId } from '@/lib/serializers';
-import { setSessionCookie } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
@@ -21,13 +22,21 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
+    const verification = createVerificationTokenRecord();
     const insertResult = await db.collection(COLLECTIONS.users).insertOne({
       name: body.name,
       email: body.email,
       passwordHash: hashPassword(body.password),
       role: 'student',
       createdAt: now,
-      lastLogin: now,
+      lastLogin: null,
+      emailVerifiedAt: null,
+      emailVerificationTokenHash: verification.tokenHash,
+      emailVerificationTokenExpiresAt: verification.expiresAt,
+      passwordResetTokenHash: null,
+      passwordResetTokenExpiresAt: null,
+      failedLoginAttempts: 0,
+      lockUntil: null,
     });
 
     const user = {
@@ -36,20 +45,16 @@ export async function POST(request: Request) {
       email: body.email,
       role: 'student' as const,
       createdAt: now,
-      lastLogin: now,
+      lastLogin: null,
+      emailVerifiedAt: null,
     };
 
-    await setSessionCookie({
-      userId: insertResult.insertedId.toString(),
-      role: 'student',
-      email: body.email,
-      name: body.name,
-    });
+    await sendVerificationEmail(body.email, verification.token);
 
     return Response.json({
       success: true,
       user: serializeId(user),
-      message: 'Account created successfully',
+      message: 'Account created. Please verify your email before logging in.',
     });
   } catch (error) {
     return Response.json(
