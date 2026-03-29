@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/constants';
 import { apiRequest } from '@/lib/client-api';
+import { Brain, ArrowLeft } from 'lucide-react';
 
-export default function ResetPasswordPage() {
+// Must be a separate component because useSearchParams requires Suspense
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
@@ -21,17 +22,8 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
-
-    if (!token) {
-      setError('Password reset link is invalid.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
+    if (!token) { setError('Password reset link is invalid or expired.'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
     setIsLoading(true);
     try {
       await apiRequest('/api/auth/reset-password', {
@@ -47,61 +39,80 @@ export default function ResetPasswordPage() {
   };
 
   return (
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-1.5">
+        <label htmlFor="password" className="text-sm font-semibold text-foreground">New Password</label>
+        <Input
+          id="password"
+          type="password"
+          placeholder="Min 8 chars, uppercase, number & symbol"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          disabled={isLoading}
+          className="h-11 bg-background border-border"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="confirmPassword" className="text-sm font-semibold text-foreground">Confirm Password</label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          placeholder="••••••••"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          disabled={isLoading}
+          className="h-11 bg-background border-border"
+        />
+      </div>
+
+      <Button type="submit" className="w-full h-11" disabled={isLoading}>
+        {isLoading ? 'Resetting…' : 'Reset Password'}
+      </Button>
+    </form>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <Card className="border-border">
-          <CardHeader className="space-y-2 text-center">
-            <CardTitle className="text-2xl">Reset Password</CardTitle>
-            <CardDescription>Create a new password for your account.</CardDescription>
-          </CardHeader>
+      <div className="w-full max-w-md animate-fade-in">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <Brain className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-lg font-bold text-foreground">SmartPrep AI</span>
+        </div>
 
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-extrabold text-foreground mb-2">Set new password</h1>
+          <p className="text-muted-foreground">Choose a strong password you haven&apos;t used before.</p>
+        </div>
 
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">
-                  New Password
-                </label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 chars, 1 uppercase, 1 number, 1 symbol"
-                  disabled={isLoading}
-                />
-              </div>
+        {/* Suspense wraps the component that uses useSearchParams */}
+        <Suspense fallback={
+          <div className="space-y-4">
+            <div className="h-11 skeleton rounded-xl" />
+            <div className="h-11 skeleton rounded-xl" />
+            <div className="h-11 skeleton rounded-xl" />
+          </div>
+        }>
+          <ResetPasswordForm />
+        </Suspense>
 
-              <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
-                  Confirm Password
-                </label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Resetting...' : 'Reset Password'}
-              </Button>
-            </form>
-
-            <div className="mt-6 pt-6 border-t border-border text-center text-sm">
-              <Link href={ROUTES.LOGIN} className="text-accent hover:underline">
-                Back to sign in
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mt-6 text-center">
+          <Link href={ROUTES.LOGIN} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Sign In
+          </Link>
+        </div>
       </div>
     </div>
   );

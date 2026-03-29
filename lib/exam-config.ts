@@ -1,5 +1,6 @@
 export const DEFAULT_EXAM_SUBJECTS = {
   JEE: ['Physics', 'Chemistry', 'Mathematics'],
+  NEET: ['Biology', 'Physics', 'Chemistry'],
   SSC: ['Quantitative Aptitude', 'General Intelligence', 'English', 'General Awareness'],
   Aptitude: [
     'Arithmetic Aptitude',
@@ -12,3 +13,4 @@ export const DEFAULT_EXAM_SUBJECTS = {
 } as const;
 
 export const DEFAULT_EXAM_TYPES = Object.keys(DEFAULT_EXAM_SUBJECTS);
+
