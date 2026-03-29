@@ -173,10 +173,11 @@ export default function AdminQuestionsPage() {
   const matchingTests = tests.filter(
     (test) =>
       test.examType === aiForm.examType &&
-      test.sections.some(
+      (test.sections?.some(
         (section) => section.subject === aiForm.subject && section.difficulty === aiForm.difficulty
-      )
+      ) ?? false)
   );
+
 
   useEffect(() => {
     setAiForm((current) => {

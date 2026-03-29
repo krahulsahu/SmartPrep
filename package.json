@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node --env-file=.env scripts/seed.mjs",
+    "seed:jee": "node --env-file=.env scripts/jee-seed.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

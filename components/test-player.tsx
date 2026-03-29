@@ -4,7 +4,15 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Test, Question, TestAnswer } from '@/lib/types';
-import { Clock, AlertCircle, ChevronLeft, ChevronRight, Flag } from 'lucide-react';
+import { Clock, AlertCircle, ChevronLeft, ChevronRight, Flag, CheckCircle2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface TestPlayerProps {
   test: Test;
@@ -25,6 +33,7 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
   const [markedQuestions, setMarkedQuestions] = useState<Set<string>>(new Set());
   const [startTime] = useState(Date.now());
   const [showWarning, setShowWarning] = useState(false);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = answers[currentQuestionIndex];
@@ -82,10 +91,13 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
     }
   };
 
-  const handleSubmit = () => {
-    if (window.confirm('Are you sure you want to submit your test? You cannot change your answers after submission.')) {
-      onSubmit(answers);
-    }
+  const handleSubmitClick = () => {
+    setShowSubmitDialog(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setShowSubmitDialog(false);
+    onSubmit(answers);
   };
 
   const questionsWithAnswers = answers.filter((a) =>
@@ -195,8 +207,8 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
 
           {currentQuestionIndex === questions.length - 1 ? (
             <Button
-              onClick={handleSubmit}
-              className="gap-2 bg-green-600 hover:bg-green-700"
+              onClick={handleSubmitClick}
+              className="gap-2 bg-green-600 hover:bg-green-700 text-white"
             >
               Submit Test
             </Button>
@@ -270,6 +282,42 @@ export function TestPlayer({ test, onSubmit }: TestPlayerProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Submission Confirmation Dialog */}
+      <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
+              Submit Test?
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Are you sure you want to submit your test?
+              <br /><br />
+              <span className="font-semibold text-foreground">
+                You have answered {questionsWithAnswers} out of {questions.length} questions.
+              </span>
+              <br /><br />
+              You cannot change your answers after submission.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-between mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowSubmitDialog(false)}
+            >
+              Cancel & Continue Testing
+            </Button>
+            <Button
+              variant="default"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleConfirmSubmit}
+            >
+              Confirm Submission
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

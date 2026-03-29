@@ -24,7 +24,7 @@ type AttemptPayload = {
     id: string;
     text: string;
     correctAnswer: string | string[];
-    explanation: string;
+    explanation: string | { concept: string; solution: string };
   }>;
 };
 
@@ -114,15 +114,15 @@ export default function ResultsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
-              ['Your Score', `${attempt.percentage || 0}%`, `${derived.correctCount}/${attempt.questions.length} correct`],
-              ['Passing Score', `${attempt.test.passingScore}%`, 'Required'],
-              ['Time Spent', `${Math.round((attempt.timeSpent || 0) / 60)}m`, 'Recorded in DB'],
-              ['Answered', `${derived.answeredCount}/${attempt.questions.length}`, 'Questions answered'],
-            ].map(([label, value, hint]) => (
-              <div key={label} className="text-center p-4 bg-white dark:bg-black/20 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">{label}</p>
-                <p className="text-2xl font-bold text-foreground">{value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{hint}</p>
+              { label: 'Your Score', value: `${attempt.percentage || 0}%`, hint: `${derived.correctCount}/${attempt.questions?.length || 0} correct` },
+              { label: 'Passing Score', value: `${attempt.test.passingScore}%`, hint: 'Required' },
+              { label: 'Time Spent', value: `${Math.round((attempt.timeSpent || 0) / 60)}m`, hint: 'Recorded in DB' },
+              { label: 'Answered', value: `${derived.answeredCount}/${attempt.questions?.length || 0}`, hint: 'Questions answered' },
+            ].map((stat, i) => (
+              <div key={i} className="text-center p-4 bg-white dark:bg-black/20 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
+                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-xs text-muted-foreground mt-1">{stat.hint}</p>
               </div>
             ))}
           </div>
@@ -137,7 +137,7 @@ export default function ResultsPage() {
         <CardContent>
           <div className="space-y-6">
             {attempt.answers.map((answer, index) => {
-              const question = attempt.questions.find((entry) => entry.id === answer.questionId);
+              const question = attempt.questions?.find((entry) => entry.id === answer.questionId);
               if (!question) return null;
               const isCorrect = answersMatch(question.correctAnswer, answer.answer);
 
@@ -157,8 +157,27 @@ export default function ResultsPage() {
                       </p>
                     </>
                   )}
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">EXPLANATION</p>
-                  <p className="text-sm text-muted-foreground">{question.explanation}</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1 mt-4">EXPLANATION</p>
+                  <div className="text-sm text-foreground bg-accent/5 p-4 rounded-lg border border-accent/20">
+                    {typeof question.explanation === 'string' ? (
+                      <p>{question.explanation}</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {question.explanation?.concept && (
+                          <div>
+                            <p className="font-semibold text-accent mb-1">Concept</p>
+                            <p>{question.explanation.concept}</p>
+                          </div>
+                        )}
+                        {question.explanation?.solution && (
+                          <div>
+                            <p className="font-semibold text-accent mb-1">Solution</p>
+                            <p>{question.explanation.solution}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
